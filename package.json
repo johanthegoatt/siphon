@@ -1,0 +1,11 @@
+{
+  "name": "siphon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Find every subscription in a bank statement CSV, locally in the browser.",
+  "scripts": {
+    "test": "node --test test/engine.test.js",
+    "sweep": "node tools/sweep.js"
+  },
+  "license": "MIT"
+}
