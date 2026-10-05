@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<title>Siphon: find the subscriptions in your bank statement</title>
+<meta name="description" content="Drop in a bank or card CSV and see every recurring charge, what it costs a year, which prices went up and when each one renews. Runs entirely in your browser.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23123b2e'/%3E%3Cpath d='M9 8h14M9 14h14M9 20h8' stroke='%23e9f2ec' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='23' cy='22' r='4' fill='%23e2563b'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./" aria-label="Siphon home">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect width="32" height="32" rx="7" class="brand-bg"/><path d="M9 8h14M9 14h14M9 20h8" class="brand-lines"/><circle cx="23" cy="22" r="4" class="brand-dot"/></svg>
+      <span>Siphon</span>
+    </a>
+    <p class="lock" title="This page is not allowed to make network requests"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" class="stroke"/><rect x="3" y="7" width="10" height="7" rx="1.5" class="fill"/></svg>Your file stays in this tab</p>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section id="intake" class="intake" aria-labelledby="intake-title">
+    <div class="intro">
+      <h1 id="intake-title">Find every subscription hiding in your bank statement.</h1>
+      <p class="lede">Export a CSV from your bank or card, drop it here, and get a list of every recurring charge: what it costs a year, which prices went up, which ones stopped, and when each renews next.</p>
+    </div>
+
+    <label class="drop" id="drop" for="file">
+      <input id="file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" multiple class="sr-only">
+      <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><path d="M14 6h14l10 10v26H14z" class="doc"/><path d="M28 6v10h10" class="doc"/><path d="M20 26h12M20 32h12M20 38h7" class="doc-lines"/></svg>
+      <span class="drop-title">Drop CSV statements here</span>
+      <span class="drop-sub">or <u>choose files</u>. Several months or several accounts at once is fine.</span>
+    </label>
+
+    <div class="intake-actions">
+      <button type="button" class="btn" id="sample">Try a sample statement</button>
+      <button type="button" class="btn ghost" id="paste-toggle" aria-expanded="false" aria-controls="paste-box">Paste CSV text</button>
+    </div>
+
+    <div id="paste-box" class="paste" hidden>
+      <label for="paste" class="label">CSV text</label>
+      <textarea id="paste" rows="7" spellcheck="false" placeholder="Date,Description,Amount&#10;2026-09-14,NETFLIX.COM,-15.49&#10;..."></textarea>
+      <button type="button" class="btn" id="paste-go">Read pasted text</button>
+    </div>
+
+    <p id="intake-error" class="error" role="alert" hidden></p>
+
+    <div class="howto">
+      <details>
+        <summary>How do I get a CSV from my bank?</summary>
+        <ol>
+          <li>Sign in to your bank or card website on a computer.</li>
+          <li>Open the account, then look for <b>Download</b>, <b>Export</b> or <b>Statements</b>.</li>
+          <li>Pick <b>CSV</b> (sometimes called Excel or spreadsheet format) and the longest date range offered. Twelve months catches yearly renewals; three months is the minimum for monthly ones.</li>
+          <li>Drop the file above. Overlapping downloads are merged without double counting.</li>
+        </ol>
+      </details>
+      <details>
+        <summary>What happens to my data?</summary>
+        <p>The file is read by JavaScript in this tab and nothing else. The page ships with a Content-Security-Policy of <code>connect-src 'none'</code>, so the browser itself blocks any attempt to send data anywhere. There is no account, no analytics and no server. Your keep and cancel choices are saved in this browser only.</p>
+      </details>
+    </div>
+  </section>
+
+  <section id="files" class="files" aria-labelledby="files-title" hidden>
+    <div class="section-head">
+      <h2 id="files-title">Statements</h2>
+      <div class="head-actions">
+        <label class="btn small ghost" for="file-more">Add another<input id="file-more" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" multiple class="sr-only"></label>
+        <button type="button" class="btn small ghost" id="reset">Start over</button>
+      </div>
+    </div>
+    <div id="file-list" class="file-list"></div>
+  </section>
+
+  <section id="results" class="results" aria-labelledby="results-title" hidden>
+    <h2 id="results-title" class="sr-only">Recurring charges</h2>
+    <div class="stats" id="stats"></div>
+
+    <div class="layout">
+      <div class="main-col">
+        <div class="toolbar">
+          <div class="tabs" role="tablist" aria-label="Filter" id="filters"></div>
+          <div class="tools">
+            <label class="select-wrap"><span class="sr-only">Sort by</span>
+              <select id="sort">
+                <option value="yearly">Highest yearly cost</option>
+                <option value="next">Next charge first</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+            <label class="select-wrap"><span class="sr-only">Currency</span>
+              <select id="currency"></select>
+            </label>
+          </div>
+        </div>
+        <ul id="subs" class="subs" aria-live="polite"></ul>
+        <div id="empty" class="empty" hidden></div>
+      </div>
+
+      <aside class="side">
+        <section class="panel" aria-labelledby="up-title">
+          <h3 id="up-title">Next 30 days</h3>
+          <ul id="upcoming" class="upcoming"></ul>
+        </section>
+        <section class="panel" aria-labelledby="ex-title">
+          <h3 id="ex-title">Take it with you</h3>
+          <p class="muted">Calendar reminders land three days before each renewal, so you can cancel before you pay.</p>
+          <div class="ex-buttons">
+            <button type="button" class="btn" id="export-ics">Add renewals to calendar (.ics)</button>
+            <button type="button" class="btn ghost" id="export-csv">Download list (.csv)</button>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="how-title">
+          <h3 id="how-title">How it decides</h3>
+          <p class="muted">Charges are grouped by merchant after stripping card numbers, store IDs and payment-processor prefixes. A group counts as recurring when it lands on a steady schedule (weekly to yearly) at a steady or slowly changing price. Shops you visit often are ruled out even when the price repeats.</p>
+        </section>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="foot wrap">
+  <p>Siphon by <a href="https://johanthegoat.xyz/work/siphon/">Johan Braga</a>. Open source on <a href="https://github.com/johanthegoatt/siphon">GitHub</a>. Not financial advice; it reads your file and does arithmetic.</p>
+</footer>
+
+<div id="status" class="sr-only" role="status" aria-live="polite"></div>
+
+<script src="src/engine.js"></script>
+<script src="src/sample.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
