@@ -1,6 +1,6 @@
 # Siphon
 
-Find every subscription hiding in your bank statement. Drop in a CSV export from your bank or card and Siphon lists every recurring charge: what it costs a year, which prices went up, which ones stopped billing, and when each one renews next. Everything runs in the browser tab. Nothing is uploaded.
+Find every subscription hiding in your bank statement. Drop in a CSV export from your bank or card and Siphon lists every recurring charge: what it costs a year, which prices went up, which ones stopped billing, and when each one renews next.
 
 **Live:** https://siphon.johanthegoat.xyz
 
