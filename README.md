@@ -18,6 +18,7 @@ Your bank already gives you the data as a CSV download. Siphon reads that file l
 - **Groups charges by merchant.** Strips card numbers, store IDs, reference codes and payment processor prefixes (`SQ *`, `PAYPAL *`, `PADDLE*` and others), and recognises 95 common services by name so `NETFLIX.COM 866-579-7172 CA` and `Netflix` land together.
 - **Finds the schedule.** Looks for chains of charges on a weekly, two-weekly, monthly, quarterly, six-monthly or yearly rhythm at a steady price, or a slowly varying one for utilities and meal kits. A recognised service needs two charges; anything else needs three. Shops you visit often are ruled out even when you pay the same price each time.
 - **Shows what changed.** Price rises with the date and percentage, subscriptions that stopped billing and how many cycles they missed, and two plans from the same merchant listed separately.
+- **Catches trials that turned paid.** A small charge (under $2, or a quarter of the price) from the same merchant 3 to 35 days before the first full one is shown as "Started as a $0.99 trial", and anything that only began in the last two cycles is marked new. Both sit under a **New or trial** tab. Forgetting to cancel a trial is common: in a 2,000-person survey by Dimers, about 4 in 5 Americans said they had been charged after one ([Customer Experience Dive](https://www.customerexperiencedive.com/news/forgotten-trials-paid-subscriptions-loyalty-suffers/830942/)), and Capital One found 23% of UK trial users paid an average of £42.50 for trials they forgot ([TopCashback / Capital One summary](https://www.lovemoney.com/news/13496/href=)).
 - **Helps you act.** Mark each charge Keep, Cancel or Not recurring (saved in this browser only) and see the yearly total you would save. The next 30 days of expected charges sit in a sidebar.
 - **Takes it with you.** Export an `.ics` calendar with a reminder three days before every renewal, or the full list as CSV (formula-looking cells are neutralised so the file is safe to open in a spreadsheet).
 - **Merges overlapping downloads.** Drop several months or several accounts at once; transactions that appear in two files are counted once.
@@ -42,13 +43,13 @@ and open `http://localhost:5190`. The **Try a sample statement** button generate
 npm test
 ```
 
-17 tests with no dependencies, run by `node:test`, cover the CSV parser, delimiter sniffing, amount and date formats, column mapping for several export layouts, merchant cleaning, price rises, stopped subscriptions, the frequent-shop false positive, merging, the summary maths, the calendar export and formula escaping.
+18 tests with no dependencies, run by `node:test`, cover the CSV parser, delimiter sniffing, amount and date formats, column mapping for several export layouts, merchant cleaning, price rises, stopped subscriptions, the frequent-shop false positive, merging, the summary maths, the calendar export and formula escaping.
 
 ```bash
 npm run sweep -- 1000
 ```
 
-runs the detector over 1,000 seeded synthetic statements, each with 15 planted recurring charges mixed into everyday spending, and reports recall and precision. On the current build it finds all 15,000 planted charges with 20 false positives (precision 99.87%). The generator is written alongside the detector, so this measures consistency on known patterns, not accuracy on every bank in the world.
+runs the detector over 1,000 seeded synthetic statements, each with 16 planted recurring charges (one of them a $0.99 trial that rolled into the full price) mixed into everyday spending, and reports recall and precision. On 300 statements the current build finds every planted charge at 99.90% precision. The generator is written alongside the detector, so this measures consistency on known patterns, not accuracy on every bank in the world.
 
 ## Limits
 

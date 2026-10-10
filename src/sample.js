@@ -107,6 +107,11 @@
 
     add(posted(onDayOfMonth(m0, ri(2, 8), ri(1, 28))), "DUOLINGO PLUS ANNUAL", 8499);
 
+    // A $0.99 first month that rolled into the full price three months ago.
+    var trialDom = ri(1, 26);
+    add(posted(onDayOfMonth(m0, months - 4, trialDom)), "AUDIBLE*" + ref(rand, 6) + " AMZN.COM/BILL NJ", 99);
+    monthly("Audible", "B:Audible", trialDom, function () { return 1495; }, function () { return "AUDIBLE*" + ref(rand, 6) + " AMZN.COM/BILL NJ"; }, months - 3, 99);
+
     var pay = startDay + ri(0, 13);
     while (pay <= endDay) { add(posted(pay), "ACME CORP PAYROLL DIR DEP", -245000); pay += 14; }
 

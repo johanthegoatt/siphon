@@ -222,6 +222,7 @@
       if (dec === "ignore") return false;
       if (state.filter === "active") return s.active;
       if (state.filter === "raised") return s.active && s.priceDelta > 0;
+      if (state.filter === "new") return s.active && (s.isNew || s.trial);
       if (state.filter === "stopped") return !s.active;
       if (state.filter === "cancel") return dec === "cancel";
       return true;
@@ -257,19 +258,20 @@
 
   function renderFilters() {
     var d = state.decisions;
-    var counts = { active: 0, raised: 0, stopped: 0, cancel: 0, ignored: 0, all: 0 };
+    var counts = { active: 0, raised: 0, "new": 0, stopped: 0, cancel: 0, ignored: 0, all: 0 };
     state.subs.forEach(function (s) {
       if (d[s.id] === "ignore") { counts.ignored++; return; }
       counts.all++;
       if (s.active) counts.active++; else counts.stopped++;
       if (s.active && s.priceDelta > 0) counts.raised++;
+      if (s.active && (s.isNew || s.trial)) counts["new"]++;
       if (d[s.id] === "cancel") counts.cancel++;
     });
-    var tabs = [["active", "Active"], ["raised", "Price went up"], ["stopped", "Stopped"], ["cancel", "To cancel"], ["all", "All"], ["ignored", "Hidden"]];
+    var tabs = [["active", "Active"], ["raised", "Price went up"], ["new", "New or trial"], ["stopped", "Stopped"], ["cancel", "To cancel"], ["all", "All"], ["ignored", "Hidden"]];
     var box = $("filters");
     box.textContent = "";
     tabs.forEach(function (t) {
-      if ((t[0] === "ignored" || t[0] === "cancel") && !counts[t[0]] && state.filter !== t[0]) return;
+      if ((t[0] === "ignored" || t[0] === "cancel" || t[0] === "new") && !counts[t[0]] && state.filter !== t[0]) return;
       var on = state.filter === t[0];
       box.appendChild(el("button", {
         type: "button", role: "tab", class: "tab", "aria-selected": on ? "true" : "false", tabindex: on ? "0" : "-1",
@@ -302,7 +304,7 @@
         empty.appendChild(el("h3", { text: "No recurring charges found" }));
         empty.appendChild(el("p", { text: "Siphon needs at least two charges from the same merchant on a steady schedule, three if it does not recognise the merchant. Try a longer date range, add another month of statements, or check the column choices above." }));
       } else {
-        empty.appendChild(el("p", { text: { raised: "No active charge has gone up in price over this period.", stopped: "Nothing has stopped billing.", cancel: "Nothing marked to cancel yet.", ignored: "Nothing hidden." }[state.filter] || "Nothing here." }));
+        empty.appendChild(el("p", { text: { raised: "No active charge has gone up in price over this period.", "new": "No new charges or trials that turned paid.", stopped: "Nothing has stopped billing.", cancel: "Nothing marked to cancel yet.", ignored: "Nothing hidden." }[state.filter] || "Nothing here." }));
       }
       return;
     }
@@ -321,6 +323,8 @@
     } else if (s.priceDelta < 0) {
       badges.appendChild(el("span", { class: "badge", text: "Price went down" }));
     }
+    if (s.trial) badges.appendChild(el("span", { class: "badge up", text: "Started as a " + (s.trial.spend < 100 ? money(s.trial.spend) + " " : "") + "trial on " + fmtDay(s.trial.day) }));
+    else if (s.isNew && s.active) badges.appendChild(el("span", { class: "badge up", text: "New since " + fmtDay(s.first) }));
     if (s.variable) badges.appendChild(el("span", { class: "badge", text: "Amount varies" }));
     if (!s.active) badges.appendChild(el("span", { class: "badge stop", text: "Last charged " + fmtDay(s.last) + ", " + s.missed + " missed" }));
     if (s.confidence < 0.7) badges.appendChild(el("span", { class: "badge soft", text: "Worth a look" }));

@@ -213,3 +213,22 @@ test("CSV export neutralises spreadsheet formulas", () => {
   const out = S.toCSV([{ name: "=HYPERLINK(\"x\")", cadenceLabel: "Monthly", amount: 100, monthly: 100, yearly: 1200, first: 0, last: 30, next: 60, active: true, priceDelta: 0, count: 2, id: "x" }]);
   assert.ok(out.split("\r\n")[1].startsWith("\"'=HYPERLINK"));
 });
+
+test("a trial that turned paid is flagged, and so is a charge that just started", () => {
+  const rows = ["Date,Description,Amount"];
+  // Long history so "new" has something to be new against.
+  for (let m = 1; m <= 9; m++) rows.push(`2026-0${m}-10,SPOTIFY USA,-11.99`);
+  rows.push("2026-07-01,PELOTON* MEMBERSHIP,-1.00");
+  rows.push("2026-07-31,PELOTON* MEMBERSHIP,-44.00", "2026-08-31,PELOTON* MEMBERSHIP,-44.00", "2026-09-30,PELOTON* MEMBERSHIP,-44.00");
+  rows.push("2026-03-20,RIVERSIDE STORAGE,-89.00", "2026-04-20,RIVERSIDE STORAGE,-89.00", "2026-05-20,RIVERSIDE STORAGE,-89.00");
+  const subs = run(rows.join("\n")).result.subscriptions;
+  const p = subs.find((s) => /peloton/i.test(s.name));
+  assert.ok(p, "found the paid run");
+  assert.deepEqual(p.trial, { day: day("2026-07-01"), spend: 100 });
+  assert.equal(p.isNew, true);
+  const sp = subs.find((s) => /spotify/i.test(s.name));
+  assert.equal(sp.trial, null);
+  assert.equal(sp.isNew, false);
+  const sum = S.summarize(subs, {});
+  assert.equal(sum.newCount, 1);
+});

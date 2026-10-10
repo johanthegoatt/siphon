@@ -512,7 +512,7 @@
           if (!g.known && !onSchedule(list, cad, q.variable)) return;
           if (!g.known) {
             var span0 = list[0].day - cad.min, span1 = list[list.length - 1].day + cad.min;
-            var others = g.charges.filter(function (c) { return !c.used && idxs.indexOf(g.charges.indexOf(c)) < 0 && c.day >= span0 && c.day <= span1; }).length;
+            var others = g.charges.filter(function (c) { return !c.used && idxs.indexOf(g.charges.indexOf(c)) < 0 && c.day >= span0 && c.day <= span1 && c.spend > list[0].spend * 0.25; }).length;
             if (others > list.length * 0.3) return;
           }
           idxs.forEach(function (i) { g.charges[i].used = true; });
@@ -583,6 +583,17 @@
     var firstRegular = q.variable ? median(list.slice(0, 3).map(function (c) { return c.spend; })) : first.spend;
     var gaps = [];
     for (var k = 1; k < list.length; k++) gaps.push(list[k].day - list[k - 1].day);
+    // A free or cheap trial that turned into this: a small charge from the
+    // same merchant 3 to 35 days before the first full one.
+    var trial = null;
+    g.charges.forEach(function (c) {
+      var before = first.day - c.day;
+      if (c.used || before < 3 || before > 35) return;
+      if (c.spend > Math.max(199, firstRegular * 0.25)) return;
+      if (!trial || c.day > trial.day) trial = { day: c.day, spend: c.spend };
+    });
+    // Started inside the last two cycles of the statement: easy to miss.
+    var isNew = first.day > range.start + cad.max && range.end - first.day <= 2 * cad.max + 3;
     var confidence = Math.min(1,
       0.25 + Math.min(0.35, (list.length - 1) * 0.08) +
       (q.variable ? 0.05 : 0.2 * q.sameRate) +
@@ -607,6 +618,8 @@
       missed: missed,
       variable: q.variable,
       priceChanges: changes,
+      trial: trial,
+      isNew: isNew,
       priceDelta: q.variable ? 0 : last.spend - firstRegular,
       count: list.length,
       charges: list.map(function (c) { return { day: c.day, spend: c.spend, desc: c.desc }; }),
@@ -616,7 +629,7 @@
 
   function summarize(subs, decisions) {
     decisions = decisions || {};
-    var out = { activeCount: 0, monthly: 0, yearly: 0, cancelYearly: 0, cancelCount: 0, stoppedCount: 0, raisedCount: 0, ignored: 0 };
+    var out = { activeCount: 0, monthly: 0, yearly: 0, cancelYearly: 0, cancelCount: 0, stoppedCount: 0, raisedCount: 0, newCount: 0, ignored: 0 };
     subs.forEach(function (s) {
       var d = decisions[s.id];
       if (d === "ignore") { out.ignored++; return; }
@@ -625,6 +638,7 @@
       out.monthly += s.monthly;
       out.yearly += s.yearly;
       if (s.priceDelta > 0) out.raisedCount++;
+      if (s.isNew || s.trial) out.newCount++;
       if (d === "cancel") { out.cancelCount++; out.cancelYearly += s.yearly; }
     });
     return out;
