@@ -29,9 +29,9 @@
     </div>
 
     <label class="drop" id="drop" for="file">
-      <input id="file" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" multiple class="sr-only">
+      <input id="file" type="file" accept=".csv,.tsv,.txt,.ofx,.qfx,text/csv,text/plain,application/x-ofx" multiple class="sr-only">
       <svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><path d="M14 6h14l10 10v26H14z" class="doc"/><path d="M28 6v10h10" class="doc"/><path d="M20 26h12M20 32h12M20 38h7" class="doc-lines"/></svg>
-      <span class="drop-title">Drop CSV statements here</span>
+      <span class="drop-title">Drop CSV or OFX statements here</span>
       <span class="drop-sub">or <u>choose files</u>. Several months or several accounts at once is fine.</span>
     </label>
 
@@ -54,7 +54,7 @@
         <ol>
           <li>Sign in to your bank or card website on a computer.</li>
           <li>Open the account, then look for <b>Download</b>, <b>Export</b> or <b>Statements</b>.</li>
-          <li>Pick <b>CSV</b> (sometimes called Excel or spreadsheet format) and the longest date range offered. Twelve months catches yearly renewals; three months is the minimum for monthly ones.</li>
+          <li>Pick <b>CSV</b> (sometimes called Excel or spreadsheet format), or <b>OFX/QFX</b> (Quicken or Money) if that is all there is, and the longest date range offered. Twelve months catches yearly renewals; three months is the minimum for monthly ones.</li>
           <li>Drop the file above. Overlapping downloads are merged without double counting.</li>
         </ol>
       </details>
@@ -65,7 +65,7 @@
     <div class="section-head">
       <h2 id="files-title">Statements</h2>
       <div class="head-actions">
-        <label class="btn small ghost" for="file-more">Add another<input id="file-more" type="file" accept=".csv,.tsv,.txt,text/csv,text/plain" multiple class="sr-only"></label>
+        <label class="btn small ghost" for="file-more">Add another<input id="file-more" type="file" accept=".csv,.tsv,.txt,.ofx,.qfx,text/csv,text/plain,application/x-ofx" multiple class="sr-only"></label>
         <button type="button" class="btn small ghost" id="reset">Start over</button>
       </div>
     </div>

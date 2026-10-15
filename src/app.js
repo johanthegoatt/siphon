@@ -77,8 +77,8 @@
   function addSources(sources) {
     var bad = [];
     sources.forEach(function (src) {
-      if (/^\s*%PDF|^PK\u0003\u0004/.test(src.text.slice(0, 8))) { bad.push(src.name + " looks like a PDF or spreadsheet, not a CSV. Most banks offer CSV next to PDF on the download page."); return; }
-      var parsed = S.parseCSV(src.text);
+      if (/^\s*%PDF|^PK\u0003\u0004/.test(src.text.slice(0, 8))) { bad.push(src.name + " looks like a PDF or spreadsheet. Most banks offer CSV or OFX/QFX (Quicken) next to PDF on the download page."); return; }
+      var parsed = S.looksLikeOFX(src.text) ? S.parseOFX(src.text) : S.parseCSV(src.text);
       var mapping = S.guessMapping(parsed.rows);
       state.files.push({ id: Date.now() + Math.random(), name: src.name, rows: parsed.rows, mapping: mapping, isSample: !!src.isSample });
       if (!state.currency && mapping.currency) state.currency = mapping.currency;

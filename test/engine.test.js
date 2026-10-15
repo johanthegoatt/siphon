@@ -232,3 +232,41 @@ test("a trial that turned paid is flagged, and so is a charge that just started"
   const sum = S.summarize(subs, {});
   assert.equal(sum.newCount, 1);
 });
+
+function ofxStatement(version) {
+  const months = Array.from({ length: 6 }, (_, i) => `2026${String(i + 1).padStart(2, "0")}05`);
+  const trn = (date, amount, name, memo) =>
+    version === 1
+      ? `<STMTTRN>\n<TRNTYPE>DEBIT\n<DTPOSTED>${date}120000[-5:EST]\n<TRNAMT>${amount}\n<FITID>${date}${name.length}\n<NAME>${name}\n<MEMO>${memo}\n</STMTTRN>`
+      : `<STMTTRN><TRNTYPE>DEBIT</TRNTYPE><DTPOSTED>${date}</DTPOSTED><TRNAMT>${amount}</TRNAMT><NAME>${name}</NAME><MEMO>${memo}</MEMO></STMTTRN>`;
+  const list = months.flatMap((d, i) => [
+    trn(d, "-15.49", "NETFLIX.COM", "866-579-7172 CA"),
+    trn(d.slice(0, 6) + "18", "-4.75", "Joe&apos;s Coffee &amp; Co", "card 1234"),
+    trn(d.slice(0, 6) + "20", "2500.00", "PAYROLL ACME", "salary"),
+    trn(d.slice(0, 6) + String(10 + i), String(-(30 + i * 7)) + ".00", "SHELL OIL 5513", "fuel")
+  ]);
+  const head = version === 1
+    ? "OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\n\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST>\n"
+    : '<?xml version="1.0"?><?OFX OFXHEADER="200" VERSION="220"?><OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKTRANLIST>';
+  return head + list.join("\n") + "</BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>";
+}
+
+test("OFX and QFX statements, SGML or XML, find the same subscriptions", () => {
+  for (const version of [1, 2]) {
+    const text = ofxStatement(version);
+    assert.ok(S.looksLikeOFX(text));
+    const parsed = S.parseOFX(text);
+    assert.equal(parsed.rows.length, 25);
+    assert.deepEqual(parsed.rows[2], ["2026-01-18", "Joe's Coffee & Co", "-4.75"]);
+    const mapping = S.guessMapping(parsed.rows);
+    assert.ok(mapping.ok);
+    const tx = S.extractTransactions(parsed.rows, mapping).transactions;
+    const netflix = tx.filter((t) => /netflix/i.test(t.desc));
+    assert.equal(netflix.length, 6);
+    assert.ok(netflix.every((t) => t.spend === 1549 || t.spend === 15.49));
+    const subs = S.detect(tx).subscriptions.map((sub) => sub.name);
+    assert.ok(subs.some((n) => /netflix/i.test(n)), subs.join(", "));
+    assert.ok(!subs.some((n) => /payroll/i.test(n)));
+  }
+  assert.equal(S.looksLikeOFX("Date,Description,Amount\n2026-01-01,x,1"), false);
+});

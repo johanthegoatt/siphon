@@ -739,7 +739,37 @@
     return parsed;
   }
 
+  // OFX and QFX (Quicken / Money downloads, often offered next to CSV, and the
+  // only export some banks have). Version 1 is SGML with unclosed tags, 2 is
+  // XML; reading each field up to the next tag handles both. The statement
+  // becomes the same rows a CSV would give, so detection doesn't care.
+  function looksLikeOFX(text) {
+    return /^\s*(?:OFXHEADER:|<\?xml[^>]*>\s*<\?OFX|<OFX>)/i.test(String(text).slice(0, 400)) || /<STMTTRN>/i.test(String(text).slice(0, 20000));
+  }
+
+  function ofxField(block, tag) {
+    var m = block.match(new RegExp("<" + tag + ">([^<\\r\\n]*)", "i"));
+    if (!m) return "";
+    return m[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
+  }
+
+  function parseOFX(text) {
+    var rows = [["Date", "Description", "Amount"]];
+    var blocks = String(text).split(/<STMTTRN>/i).slice(1);
+    blocks.forEach(function (raw) {
+      var block = raw.split(/<\/STMTTRN>/i)[0];
+      var posted = ofxField(block, "DTPOSTED").match(/^(\d{4})(\d{2})(\d{2})/);
+      var amount = ofxField(block, "TRNAMT").replace(",", ".");
+      if (!posted || !amount) return;
+      var desc = ofxField(block, "NAME") || ofxField(block, "PAYEE") || ofxField(block, "MEMO");
+      rows.push([posted[1] + "-" + posted[2] + "-" + posted[3], desc, amount]);
+    });
+    return { rows: rows, delimiter: "ofx" };
+  }
+
   return {
+    looksLikeOFX: looksLikeOFX,
+    parseOFX: parseOFX,
     DAY_MS: DAY_MS,
     CADENCES: CADENCES,
     parseCSV: parseCSV,

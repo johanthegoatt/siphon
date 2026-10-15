@@ -1,6 +1,6 @@
 # Siphon
 
-Find every subscription hiding in your bank statement. Drop in a CSV export from your bank or card and Siphon lists every recurring charge: what it costs a year, which prices went up, which ones stopped billing, and when each one renews next.
+Find every subscription hiding in your bank statement. Drop in a CSV (or OFX/QFX) export from your bank or card and Siphon lists every recurring charge: what it costs a year, which prices went up, which ones stopped billing, and when each one renews next.
 
 **Live:** https://siphon.johanthegoat.xyz
 
@@ -15,6 +15,7 @@ Your bank already gives you the data as a CSV download. Siphon reads that file l
 ## What it does
 
 - **Reads messy bank CSVs.** Sniffs the delimiter (comma, semicolon, tab, pipe), skips preamble lines, finds the date, description and amount columns from headers and content, and handles a single signed amount column or separate money out / money in columns. Amounts like `$1,234.56`, `1.234,56 €`, `(12.00)` and `12.00 DR` all parse. Day-first and month-first dates are told apart from the values, from the file's sort order, and from the dotted `31.12.2026` style. Every column choice can be overridden.
+- **Reads OFX and QFX too.** The Quicken / Money download many banks offer next to CSV (and some offer instead of it), in either the old SGML form or the XML one.
 - **Groups charges by merchant.** Strips card numbers, store IDs, reference codes and payment processor prefixes (`SQ *`, `PAYPAL *`, `PADDLE*` and others), and recognises 95 common services by name so `NETFLIX.COM 866-579-7172 CA` and `Netflix` land together.
 - **Finds the schedule.** Looks for chains of charges on a weekly, two-weekly, monthly, quarterly, six-monthly or yearly rhythm at a steady price, or a slowly varying one for utilities and meal kits. A recognised service needs two charges; anything else needs three. Shops you visit often are ruled out even when you pay the same price each time.
 - **Shows what changed.** Price rises with the date and percentage, subscriptions that stopped billing and how many cycles they missed, and two plans from the same merchant listed separately.
